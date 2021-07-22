@@ -69,6 +69,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	dspec.Root = tempdir(os)
 	sourcedir := join(os, dspec.Root, "drone", "src")
+	_, _, full := createWorkspace(pipeline)
 	dspec.WorkingDir = sourcedir
 
 	match := manifest.Match{
@@ -112,7 +113,8 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	)
 
 	// create the workspace variables
-	envs["DRONE_WORKSPACE"] = sourcedir
+	//envs["DRONE_WORKSPACE"] = sourcedir
+	envs["DRONE_WORKSPACE"] = full
 
 	// create the .netrc environment variables if not
 	// explicitly disabled
@@ -120,12 +122,12 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		envs = environ.Combine(envs, environ.Netrc(args.Netrc))
 	}
 
-	// create the clone step
+	// create the clone src
 	if pipeline.Clone.Disable == false {
 		step := createClone(pipeline)
 		step.ID = random()
 		step.Envs = environ.Combine(envs, step.Envs)
-		step.WorkingDir = sourcedir
+		step.WorkingDir = full
 		step.Envs = environ.Combine(step.Envs, environ.Netrc(args.Netrc))
 
 		rp := spec.Block{}
@@ -133,7 +135,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		imageSM := spec.Statement{&imageCmd, nil, nil, nil, nil}
 		rp = append(rp, imageSM)
 
-		workDirCmd := spec.Command{Name: "WORKDIR", Args: []string{sourcedir}} // todo: handle pass from drone yaml workdir step.WorkingDir
+		workDirCmd := spec.Command{Name: "WORKDIR", Args: []string{full}} // todo: handle pass from drone yaml workdir src.WorkingDir
 		workDirSM := spec.Statement{&workDirCmd, nil, nil, nil, nil}
 		rp = append(rp, workDirSM)
 
@@ -155,50 +157,45 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		dspec.Steps = append(dspec.Steps, step)
 	}
 
-	for _, step := range pipeline.Steps {
+	for _, src := range pipeline.Steps {
+		dst := createStep(pipeline, src)
+		dst.Envs = environ.Combine(envs, dst.Envs)
+		setupWorkdir(src, dst, full)
+		dspec.Steps = append(dspec.Steps, dst)
+
+		// if the pipeline step has unmet conditions the step is
+		// automatically skipped.
+		if !src.When.Match(match) {
+			dst.RunPolicy = runtime.RunNever
+		}
+
 		rp := spec.Block{}
-		imageCmd := spec.Command{Name: "FROM", Args: []string{step.Image}}
+		imageCmd := spec.Command{Name: "FROM", Args: []string{src.Image}}
 		imageSM := spec.Statement{&imageCmd, nil, nil, nil, nil}
 		rp = append(rp, imageSM)
-		workDirCmd := spec.Command{Name: "WORKDIR", Args: []string{sourcedir}} // step.WorkingDir
+
+		workDirCmd := spec.Command{Name: "WORKDIR", Args: []string{dst.WorkingDir}}
 		workDirSM := spec.Statement{&workDirCmd, nil, nil, nil, nil}
 		rp = append(rp, workDirSM)
 
-		for key, value := range envs {
+		for key, value := range dst.Envs {
 			cmd := spec.Command{Name: "ENV", Args: []string{key, "=", value}}
 			st := spec.Statement{&cmd, nil, nil, nil, nil}
 			rp = append(rp, st)
 		}
 
-		for key, env := range step.Environment {
-			value := env.Value
-			cmd := spec.Command{Name: "ENV", Args: []string{key, "=", value}}
-			st := spec.Statement{&cmd, nil, nil, nil, nil}
-			rp = append(rp, st)
-		}
-
-		// done yaml add copy make drone use as dockerfile way.
-		cpCmd := spec.Command{Name: "COPY", Args: []string{".", "./"}}
+		cpCmd := spec.Command{Name: "COPY", Args: []string{".", full}}
 		cpSM := spec.Statement{&cpCmd, nil, nil, nil, nil}
 		rp = append(rp, cpSM)
 
-		for _, cmd := range step.Commands {
+		for _, cmd := range src.Commands {
 			cmsStr := strings.Fields(cmd)
 			runSt := spec.Statement{&spec.Command{Name: "RUN", Args: cmsStr}, nil, nil, nil, nil}
 			rp = append(rp, runSt)
 		}
 
-		target := spec.Target{step.Name, rp, nil}
+		target := spec.Target{src.Name, rp, nil}
 		targets = append(targets, target)
-		dstep := &engine.Step{
-			Name:   step.Name,
-			Target: target,
-		}
-
-		if !step.When.Match(match) {
-			dstep.RunPolicy = runtime.RunNever
-		}
-		dspec.Steps = append(dspec.Steps, dstep)
 	}
 
 	if isGraph(dspec) == false {

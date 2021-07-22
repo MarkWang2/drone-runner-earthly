@@ -37,15 +37,9 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		Secrets:      convertSecretEnv(src.Environment),
 		ShmSize:      int64(src.ShmSize),
 		WorkingDir:   src.WorkingDir,
-
-		//
-		//
-		//
-
-		Networks: nil, // set in compiler.go
-		Volumes:  nil, // set below
-		Devices:  nil, // see below
-		// Resources:    toResources(src), // TODO
+		Networks:     nil, // set in compiler.go
+		Volumes:      nil, // set below
+		Devices:      nil, // see below
 	}
 
 	// set container limits
