@@ -111,9 +111,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			},
 		}),
 	)
-
-	// create the workspace variables
-	//envs["DRONE_WORKSPACE"] = sourcedir
 	envs["DRONE_WORKSPACE"] = full
 
 	// create the .netrc environment variables if not
@@ -131,26 +128,13 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		step.Envs = environ.Combine(step.Envs, environ.Netrc(args.Netrc))
 
 		rp := spec.Block{}
-		imageCmd := spec.Command{Name: "FROM", Args: []string{step.Image}}
-		imageSM := spec.Statement{&imageCmd, nil, nil, nil, nil}
-		rp = append(rp, imageSM)
-
-		workDirCmd := spec.Command{Name: "WORKDIR", Args: []string{full}} // todo: handle pass from drone yaml workdir src.WorkingDir
-		workDirSM := spec.Statement{&workDirCmd, nil, nil, nil, nil}
-		rp = append(rp, workDirSM)
-
+		rp = c.buildBlock("FROM", []string{step.Image}, rp)
+		rp = c.buildBlock("WORKDIR", []string{full}, rp)
 		for key, value := range envs {
-			cmd := spec.Command{Name: "ENV", Args: []string{key, "=", value}}
-			st := spec.Statement{&cmd, nil, nil, nil, nil}
-			rp = append(rp, st)
+			rp = c.buildBlock("ENV", []string{key, "=", value}, rp)
 		}
-
-		cloneSt := spec.Statement{&spec.Command{Name: "RUN", Args: []string{"sh", "/usr/local/bin/clone"}}, nil, nil, nil, nil}
-		rp = append(rp, cloneSt)
-
-		saveSt := spec.Statement{&spec.Command{Name: "SAVE ARTIFACT", Args: []string{".", "AS", "LOCAL", sourcedir}}, nil, nil, nil, nil}
-		rp = append(rp, saveSt)
-
+		rp = c.buildBlock("RUN", []string{"sh", "/usr/local/bin/clone"}, rp)
+		rp = c.buildBlock("SAVE ARTIFACT", []string{".", "AS", "LOCAL", sourcedir}, rp)
 		target := spec.Target{step.Name, rp, nil}
 		targets = append(targets, target)
 		step.Target = target
@@ -170,30 +154,16 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 
 		rp := spec.Block{}
-		imageCmd := spec.Command{Name: "FROM", Args: []string{src.Image}}
-		imageSM := spec.Statement{&imageCmd, nil, nil, nil, nil}
-		rp = append(rp, imageSM)
-
-		workDirCmd := spec.Command{Name: "WORKDIR", Args: []string{dst.WorkingDir}}
-		workDirSM := spec.Statement{&workDirCmd, nil, nil, nil, nil}
-		rp = append(rp, workDirSM)
-
+		rp = c.buildBlock("FROM", []string{dst.Image}, rp)
+		rp = c.buildBlock("WORKDIR", []string{dst.WorkingDir}, rp)
 		for key, value := range dst.Envs {
-			cmd := spec.Command{Name: "ENV", Args: []string{key, "=", value}}
-			st := spec.Statement{&cmd, nil, nil, nil, nil}
-			rp = append(rp, st)
+			rp = c.buildBlock("ENV", []string{key, "=", value}, rp)
 		}
-
-		cpCmd := spec.Command{Name: "COPY", Args: []string{".", full}}
-		cpSM := spec.Statement{&cpCmd, nil, nil, nil, nil}
-		rp = append(rp, cpSM)
-
+		rp = c.buildBlock("COPY", []string{".", full}, rp)
 		for _, cmd := range src.Commands {
 			cmsStr := strings.Fields(cmd)
-			runSt := spec.Statement{&spec.Command{Name: "RUN", Args: cmsStr}, nil, nil, nil, nil}
-			rp = append(rp, runSt)
+			rp = c.buildBlock("RUN", cmsStr, rp)
 		}
-
 		target := spec.Target{src.Name, rp, nil}
 		targets = append(targets, target)
 	}
@@ -210,6 +180,12 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	dspec.Earthfile = efile
 
 	return dspec
+}
+
+func (c *Compiler) buildBlock(name string, args []string, rp spec.Block) spec.Block {
+	cmd := &spec.Command{Name: name, Args: args}
+	sm := spec.Statement{cmd, nil, nil, nil, nil}
+	return append(rp, sm)
 }
 
 // helper function attempts to find and return the named secret.
