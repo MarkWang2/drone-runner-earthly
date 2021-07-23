@@ -5,10 +5,10 @@
 package daemon
 
 import (
-	"github.com/MarkWang2/drone-runner-earthly2/engine"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/compiler"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/linter"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/resource"
+	"github.com/MarkWang2/drone-runner-earthly/engine"
+	"github.com/MarkWang2/drone-runner-earthly/engine/compiler"
+	"github.com/MarkWang2/drone-runner-earthly/engine/linter"
+	"github.com/MarkWang2/drone-runner-earthly/engine/resource"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/drone/runner-go/client"

@@ -7,8 +7,8 @@ package compiler
 import (
 	"strconv"
 
-	"github.com/MarkWang2/drone-runner-earthly2/engine"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/resource"
+	"github.com/MarkWang2/drone-runner-earthly/engine"
+	"github.com/MarkWang2/drone-runner-earthly/engine/resource"
 	"github.com/drone/runner-go/manifest"
 	"github.com/drone/runner-go/pipeline/runtime"
 )

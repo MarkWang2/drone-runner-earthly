@@ -9,7 +9,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
 
-	"github.com/MarkWang2/drone-runner-earthly2/command/daemon"
+	"github.com/MarkWang2/drone-runner-earthly/command/daemon"
 )
 
 // program version

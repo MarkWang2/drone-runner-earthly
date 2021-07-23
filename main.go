@@ -5,7 +5,7 @@
 package main
 
 import (
-	"github.com/MarkWang2/drone-runner-earthly2/command"
+	"github.com/MarkWang2/drone-runner-earthly/command"
 	_ "github.com/joho/godotenv/autoload"
 )
 

@@ -1,4 +1,4 @@
-module github.com/MarkWang2/drone-runner-earthly2
+module github.com/MarkWang2/drone-runner-earthly
 
 go 1.16
 

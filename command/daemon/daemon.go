@@ -9,11 +9,11 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 	"time"
 
-	"github.com/MarkWang2/drone-runner-earthly2/engine"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/compiler"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/linter"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/resource"
-	"github.com/MarkWang2/drone-runner-earthly2/internal/match"
+	"github.com/MarkWang2/drone-runner-earthly/engine"
+	"github.com/MarkWang2/drone-runner-earthly/engine/compiler"
+	"github.com/MarkWang2/drone-runner-earthly/engine/linter"
+	"github.com/MarkWang2/drone-runner-earthly/engine/resource"
+	"github.com/MarkWang2/drone-runner-earthly/internal/match"
 
 	"github.com/drone/runner-go/client"
 	"github.com/drone/runner-go/environ/provider"

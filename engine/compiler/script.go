@@ -5,10 +5,10 @@
 package compiler
 
 import (
-	"github.com/MarkWang2/drone-runner-earthly2/engine"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/compiler/shell"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/compiler/shell/powershell"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/resource"
+	"github.com/MarkWang2/drone-runner-earthly/engine"
+	"github.com/MarkWang2/drone-runner-earthly/engine/compiler/shell"
+	"github.com/MarkWang2/drone-runner-earthly/engine/compiler/shell/powershell"
+	"github.com/MarkWang2/drone-runner-earthly/engine/resource"
 )
 
 // helper function configures the pipeline script for the

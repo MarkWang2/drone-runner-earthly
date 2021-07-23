@@ -6,8 +6,8 @@ package compiler
 
 import (
 	"context"
-	"github.com/MarkWang2/drone-runner-earthly2/engine"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/resource"
+	"github.com/MarkWang2/drone-runner-earthly/engine"
+	"github.com/MarkWang2/drone-runner-earthly/engine/resource"
 	"github.com/dchest/uniuri"
 	"github.com/drone/runner-go/clone"
 	"github.com/drone/runner-go/environ"

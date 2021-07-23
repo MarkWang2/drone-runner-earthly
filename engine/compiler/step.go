@@ -7,10 +7,10 @@ package compiler
 import (
 	"strings"
 
-	"github.com/MarkWang2/drone-runner-earthly2/engine"
-	"github.com/MarkWang2/drone-runner-earthly2/engine/resource"
-	"github.com/MarkWang2/drone-runner-earthly2/internal/docker/image"
-	"github.com/MarkWang2/drone-runner-earthly2/internal/encoder"
+	"github.com/MarkWang2/drone-runner-earthly/engine"
+	"github.com/MarkWang2/drone-runner-earthly/engine/resource"
+	"github.com/MarkWang2/drone-runner-earthly/internal/docker/image"
+	"github.com/MarkWang2/drone-runner-earthly/internal/encoder"
 
 	"github.com/drone/runner-go/pipeline/runtime"
 )
