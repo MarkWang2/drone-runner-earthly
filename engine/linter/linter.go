@@ -37,7 +37,7 @@ func New() *Linter {
 // Lint executes the linting rules for the pipeline
 // configuration.
 func (l *Linter) Lint(pipeline manifest.Resource, repo *drone.Repo) error {
-	return checkPipeline(pipeline.(*resource.Pipeline), repo.Trusted)
+	return nil //checkPipeline(pipeline.(*resource.Pipeline), repo.Trusted)
 }
 
 func checkPipeline(pipeline *resource.Pipeline, trusted bool) error {
