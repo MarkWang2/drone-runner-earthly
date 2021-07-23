@@ -71,9 +71,15 @@ func (e *Earthly) Run(ctx context.Context, specv runtime.Spec, stepv runtime.Ste
 	efByes, _ := json.Marshal(spec.Earthfile)
 	targetName := dir + "+" + step.Name
 	fmt.Print(targetName)
-	cmd = exec.Command("./earthly", "--buildkit-image", "earthly/buildkitd:main", "--target-ats-json", string(efByes), targetName)
-	cmd.Stdout = output
-	cmd.Stderr = output
+	if step.Image == "" {
+		cmd = exec.Command("earthly", targetName)
+		cmd.Stdout = output
+		cmd.Stderr = output
+	} else {
+		cmd = exec.Command("./earthly", "--buildkit-image", "earthly/buildkitd:main", "--target-ats-json", string(efByes), targetName)
+		cmd.Stdout = output
+		cmd.Stderr = output
+	}
 	var err error
 	done := make(chan error)
 	go func() {
