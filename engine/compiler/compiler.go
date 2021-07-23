@@ -119,7 +119,8 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		envs = environ.Combine(envs, environ.Netrc(args.Netrc))
 	}
 
-	// create the clone src
+	// create the clone src use drone git image fetch the code and
+	// export the codes to a random host dir as earthly source context
 	if pipeline.Clone.Disable == false {
 		step := createClone(pipeline)
 		step.ID = random()
@@ -154,15 +155,33 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 
 		rp := spec.Block{}
-		rp = c.buildBlock("FROM", []string{dst.Image}, rp)
-		rp = c.buildBlock("WORKDIR", []string{dst.WorkingDir}, rp)
-		for key, value := range dst.Envs {
-			rp = c.buildBlock("ENV", []string{key, "=", value}, rp)
-		}
-		rp = c.buildBlock("COPY", []string{".", full}, rp)
-		for _, cmd := range src.Commands {
-			cmsStr := strings.Fields(cmd)
-			rp = c.buildBlock("RUN", cmsStr, rp)
+
+		from := strings.Fields(dst.Image)
+		if strings.ToUpper(from[0]) == "DOCKERFILE" {
+			var args []string
+			if len(from) > 1 {
+				args = from[1:]
+			} else {
+				args = []string{"."}
+			}
+			rp = c.buildBlock("FROM DOCKERFILE", args, rp)
+			for _, cmd := range src.Commands {
+				cmdItems := strings.Fields(cmd)
+				if strings.Join(cmdItems[0:2], " ") == "SAVE IMAGE" {
+					rp = c.buildBlock("SAVE IMAGE", cmdItems[2:], rp)
+				}
+			}
+		} else {
+			rp = c.buildBlock("FROM", []string{dst.Image}, rp)
+			rp = c.buildBlock("WORKDIR", []string{dst.WorkingDir}, rp)
+			for key, value := range dst.Envs {
+				rp = c.buildBlock("ENV", []string{key, "=", value}, rp)
+			}
+			rp = c.buildBlock("COPY", []string{".", full}, rp)
+			for _, cmd := range src.Commands {
+				cmsStr := strings.Fields(cmd)
+				rp = c.buildBlock("RUN", cmsStr, rp)
+			}
 		}
 		target := spec.Target{src.Name, rp, nil}
 		targets = append(targets, target)
