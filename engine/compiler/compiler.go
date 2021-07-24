@@ -17,7 +17,6 @@ import (
 	"github.com/drone/runner-go/registry"
 	"github.com/drone/runner-go/secret"
 	"github.com/earthly/earthly/ast/spec"
-	"strings"
 )
 
 // random generator function
@@ -63,7 +62,6 @@ type Compiler struct {
 
 func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runtime.Spec {
 	pipeline := args.Pipeline.(*resource.Pipeline)
-	targets := []spec.Target{}
 	dspec := &engine.Spec{}
 	os := pipeline.Platform.OS
 
@@ -127,7 +125,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		step.Envs = environ.Combine(envs, step.Envs)
 		step.WorkingDir = full
 		step.Envs = environ.Combine(step.Envs, environ.Netrc(args.Netrc))
-		target := toCloneConfig(step, sourcedir)
+		target := toCloneTarget(step, sourcedir)
 		step.Target = target
 		dspec.Steps = append(dspec.Steps, step)
 		step.Earthfile = spec.Earthfile{nil, nil, []spec.Target{target}, nil, nil}
@@ -155,8 +153,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 
 		if dst.Image != "" {
-			target := toConfig(dst)
-			targets = append(targets, target)
+			target := toTarget(dst)
 			dst.Earthfile = spec.Earthfile{nil, nil, []spec.Target{target}, nil, nil}
 		}
 	}
@@ -170,58 +167,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	}
 
 	return dspec
-}
-
-func toConfig(step *engine.Step) spec.Target {
-	rp := spec.Block{}
-	from := strings.Fields(step.Image)
-	if strings.ToUpper(from[0]) == "DOCKERFILE" {
-		var args []string
-		if len(from) > 1 {
-			args = from[1:]
-		} else {
-			args = []string{"."}
-		}
-		rp = buildBlock("FROM DOCKERFILE", args, rp)
-		for _, cmd := range step.Commands {
-			cmdItems := strings.Fields(cmd)
-			if strings.Join(cmdItems[0:2], " ") == "SAVE IMAGE" {
-				rp = buildBlock("SAVE IMAGE", cmdItems[2:], rp)
-			}
-		}
-	} else {
-		rp = buildBlock("FROM", []string{step.Image}, rp)
-		rp = buildBlock("WORKDIR", []string{step.WorkingDir}, rp)
-		for key, value := range step.Envs {
-			rp = buildBlock("ENV", []string{key, "=", value}, rp)
-		}
-		rp = buildBlock("COPY", []string{".", step.WorkingDir}, rp)
-		for _, cmd := range step.Commands {
-			cmsStr := strings.Fields(cmd)
-			rp = buildBlock("RUN", cmsStr, rp)
-		}
-	}
-	target := spec.Target{step.Name, rp, nil}
-	return target
-}
-
-func toCloneConfig(step *engine.Step, sourcedir string) spec.Target {
-	rp := spec.Block{}
-	rp = buildBlock("FROM", []string{step.Image}, rp)
-	rp = buildBlock("WORKDIR", []string{step.WorkingDir}, rp)
-	for key, value := range step.Envs {
-		rp = buildBlock("ENV", []string{key, "=", value}, rp)
-	}
-	rp = buildBlock("RUN", []string{"sh", "/usr/local/bin/clone"}, rp)
-	rp = buildBlock("SAVE ARTIFACT", []string{".", "AS", "LOCAL", sourcedir}, rp)
-	target := spec.Target{step.Name, rp, nil}
-	return target
-}
-
-func buildBlock(name string, args []string, rp spec.Block) spec.Block {
-	cmd := &spec.Command{Name: name, Args: args}
-	sm := spec.Statement{cmd, nil, nil, nil, nil}
-	return append(rp, sm)
 }
 
 // helper function attempts to find and return the named secret.
