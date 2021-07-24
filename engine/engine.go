@@ -68,7 +68,7 @@ func (e *Earthly) Run(ctx context.Context, specv runtime.Spec, stepv runtime.Ste
 	step := stepv.(*Step)
 	var cmd *exec.Cmd
 	dir := spec.WorkingDir
-	efByes, _ := json.Marshal(spec.Earthfile)
+	efByes, _ := json.Marshal(step.Earthfile)
 	targetName := dir + "+" + step.Name
 	fmt.Print(targetName)
 	if step.Image == "" {

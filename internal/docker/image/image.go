@@ -27,6 +27,9 @@ func Trim(name string) string {
 
 // Expand returns the fully qualified image name.
 func Expand(name string) string {
+	if len(name) < 0 {
+		return ""
+	}
 	ref, err := reference.ParseAnyReference(name)
 	if err != nil {
 		return name
