@@ -144,7 +144,15 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	for _, src := range pipeline.Steps {
 		dst := createStep(pipeline, src)
-		dst.Envs = environ.Combine(envs, dst.Envs)
+		secretENV := map[string]string{}
+		for _, s := range dst.Secrets {
+			secret, ok := c.findSecret(ctx, args, s.Name)
+			if ok {
+				s.Data = []byte(secret)
+			}
+			secretENV[s.Name] = string(s.Data)
+		}
+		dst.Envs = environ.Combine(envs, dst.Envs, secretENV)
 		setupWorkdir(src, dst, full)
 		dspec.Steps = append(dspec.Steps, dst)
 
@@ -185,6 +193,15 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 		target := spec.Target{src.Name, rp, nil}
 		targets = append(targets, target)
+	}
+
+	for _, step := range dspec.Steps {
+		for _, s := range step.Secrets {
+			secret, ok := c.findSecret(ctx, args, s.Name)
+			if ok {
+				s.Data = []byte(secret)
+			}
+		}
 	}
 
 	if isGraph(dspec) == false {
