@@ -42,30 +42,6 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		Devices:      nil, // see below
 	}
 
-	// set container limits
-	if v := int64(src.MemLimit); v > 0 {
-		dst.MemLimit = v
-	}
-	if v := int64(src.MemSwapLimit); v > 0 {
-		dst.MemSwapLimit = v
-	}
-
-	// appends the volumes to the container def.
-	for _, vol := range src.Volumes {
-		dst.Volumes = append(dst.Volumes, &engine.VolumeMount{
-			Name: vol.Name,
-			Path: vol.MountPath,
-		})
-	}
-
-	// appends the devices to the container def.
-	for _, vol := range src.Devices {
-		dst.Devices = append(dst.Devices, &engine.VolumeDevice{
-			Name:       vol.Name,
-			DevicePath: vol.DevicePath,
-		})
-	}
-
 	// appends the settings variables to the
 	// container definition.
 	for key, value := range src.Settings {

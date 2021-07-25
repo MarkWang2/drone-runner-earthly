@@ -72,11 +72,11 @@ func (e *Earthly) Run(ctx context.Context, specv runtime.Spec, stepv runtime.Ste
 	targetName := dir + "+" + step.Name
 	fmt.Print(targetName)
 	if step.Image == "" {
-		cmd = exec.Command("earthly", targetName)
+		cmd = exec.Command("./earthly", targetName)
 		cmd.Stdout = output
 		cmd.Stderr = output
 	} else {
-		cmd = exec.Command("./earthly", "--buildkit-image", "earthly/buildkitd:main", "--target-ats-json", string(efByes), targetName)
+		cmd = exec.Command("./earthly", "--target-ats-json", string(efByes), targetName)
 		cmd.Stdout = output
 		cmd.Stderr = output
 	}
