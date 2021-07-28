@@ -17,7 +17,6 @@ import (
 	"github.com/drone/runner-go/registry"
 	"github.com/drone/runner-go/secret"
 	"github.com/earthly/earthly/ast/spec"
-	"strings"
 )
 
 // random generator function
@@ -63,7 +62,6 @@ type Compiler struct {
 
 func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runtime.Spec {
 	pipeline := args.Pipeline.(*resource.Pipeline)
-	targets := []spec.Target{}
 	dspec := &engine.Spec{}
 	os := pipeline.Platform.OS
 
@@ -127,24 +125,24 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		step.Envs = environ.Combine(envs, step.Envs)
 		step.WorkingDir = full
 		step.Envs = environ.Combine(step.Envs, environ.Netrc(args.Netrc))
-
-		rp := spec.Block{}
-		rp = c.buildBlock("FROM", []string{step.Image}, rp)
-		rp = c.buildBlock("WORKDIR", []string{full}, rp)
-		for key, value := range envs {
-			rp = c.buildBlock("ENV", []string{key, "=", value}, rp)
-		}
-		rp = c.buildBlock("RUN", []string{"sh", "/usr/local/bin/clone"}, rp)
-		rp = c.buildBlock("SAVE ARTIFACT", []string{".", "AS", "LOCAL", sourcedir}, rp)
-		target := spec.Target{step.Name, rp, nil}
-		targets = append(targets, target)
+		target := toCloneTarget(step, sourcedir)
 		step.Target = target
 		dspec.Steps = append(dspec.Steps, step)
+		step.Earthfile = spec.Earthfile{nil, nil, []spec.Target{target}, nil, nil}
 	}
 
 	for _, src := range pipeline.Steps {
 		dst := createStep(pipeline, src)
-		dst.Envs = environ.Combine(envs, dst.Envs)
+		secretENV := map[string]string{}
+		for _, s := range dst.Secrets {
+			secret, ok := c.findSecret(ctx, args, s.Name)
+			if ok {
+				s.Data = []byte(secret)
+			}
+			secretENV[s.Name] = string(s.Data)
+		}
+		dst.Envs = environ.Combine(envs, dst.Envs, secretENV)
+		dst.Commands = src.Commands
 		setupWorkdir(src, dst, full)
 		dspec.Steps = append(dspec.Steps, dst)
 
@@ -154,37 +152,9 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			dst.RunPolicy = runtime.RunNever
 		}
 
-		if src.Image != "" {
-			rp := spec.Block{}
-			from := strings.Fields(dst.Image)
-			if strings.ToUpper(from[0]) == "DOCKERFILE" {
-				var args []string
-				if len(from) > 1 {
-					args = from[1:]
-				} else {
-					args = []string{"."}
-				}
-				rp = c.buildBlock("FROM DOCKERFILE", args, rp)
-				for _, cmd := range src.Commands {
-					cmdItems := strings.Fields(cmd)
-					if strings.Join(cmdItems[0:2], " ") == "SAVE IMAGE" {
-						rp = c.buildBlock("SAVE IMAGE", cmdItems[2:], rp)
-					}
-				}
-			} else {
-				rp = c.buildBlock("FROM", []string{dst.Image}, rp)
-				rp = c.buildBlock("WORKDIR", []string{dst.WorkingDir}, rp)
-				for key, value := range dst.Envs {
-					rp = c.buildBlock("ENV", []string{key, "=", value}, rp)
-				}
-				rp = c.buildBlock("COPY", []string{".", full}, rp)
-				for _, cmd := range src.Commands {
-					cmsStr := strings.Fields(cmd)
-					rp = c.buildBlock("RUN", cmsStr, rp)
-				}
-			}
-			target := spec.Target{src.Name, rp, nil}
-			targets = append(targets, target)
+		if dst.Image != "" {
+			target := toTarget(dst)
+			dst.Earthfile = spec.Earthfile{nil, nil, []spec.Target{target}, nil, nil}
 		}
 	}
 
@@ -196,16 +166,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		removeCloneDeps(dspec)
 	}
 
-	efile := spec.Earthfile{nil, nil, targets, nil, nil}
-	dspec.Earthfile = efile
-
 	return dspec
-}
-
-func (c *Compiler) buildBlock(name string, args []string, rp spec.Block) spec.Block {
-	cmd := &spec.Command{Name: name, Args: args}
-	sm := spec.Statement{cmd, nil, nil, nil, nil}
-	return append(rp, sm)
 }
 
 // helper function attempts to find and return the named secret.

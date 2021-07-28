@@ -68,17 +68,13 @@ func (e *Earthly) Run(ctx context.Context, specv runtime.Spec, stepv runtime.Ste
 	step := stepv.(*Step)
 	var cmd *exec.Cmd
 	dir := spec.WorkingDir
-	efByes, _ := json.Marshal(spec.Earthfile)
+	efByes, _ := json.Marshal(step.Earthfile)
 	targetName := dir + "+" + step.Name
 	fmt.Print(targetName)
 	if step.Image == "" {
-		cmd = exec.Command("earthly", targetName)
-		cmd.Stdout = output
-		cmd.Stderr = output
+		cmd = runEarthly(output, targetName)
 	} else {
-		cmd = exec.Command("./earthly", "--buildkit-image", "earthly/buildkitd:main", "--target-ats-json", string(efByes), targetName)
-		cmd.Stdout = output
-		cmd.Stderr = output
+		cmd = runEarthly(output, "--target-ats-json", string(efByes), targetName)
 	}
 	var err error
 	done := make(chan error)
@@ -102,4 +98,14 @@ func (e *Earthly) Run(ctx context.Context, specv runtime.Spec, stepv runtime.Ste
 		state.ExitCode = 255
 	}
 	return state, err
+}
+
+func runEarthly(output io.Writer, args ...string) *exec.Cmd {
+	// when debug use code base local earthly  cmd := exec.Command("./earthly", args...)
+	cmd := exec.Command("earthly", args...)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "FORCE_COLOR=1") // can pass from env when start
+	cmd.Stdout = output
+	cmd.Stderr = output
+	return cmd
 }
