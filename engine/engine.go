@@ -101,7 +101,8 @@ func (e *Earthly) Run(ctx context.Context, specv runtime.Spec, stepv runtime.Ste
 }
 
 func runEarthly(output io.Writer, args ...string) *exec.Cmd {
-	cmd := exec.Command("./earthly", args...)
+	// when debug use code base local earthly  cmd := exec.Command("./earthly", args...)
+	cmd := exec.Command("earthly", args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "FORCE_COLOR=1") // can pass from env when start
 	cmd.Stdout = output
