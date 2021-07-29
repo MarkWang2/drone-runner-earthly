@@ -17,3 +17,4 @@ steps:
     image: DOCKERFILE
     commands:
       - SAVE IMAGE --push go-demo:latest
+  - name: deps

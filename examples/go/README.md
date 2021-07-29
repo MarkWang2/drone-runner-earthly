@@ -16,3 +16,9 @@ Use [buildkit cache way](https://github.com/moby/buildkit/blob/master/frontend/d
       - SAVE IMAGE --push go-demo:latest
 ```
 Use commands SAVE IMAGE --push, it uses the local docker authorization to push image.
+
+### Use Earthfile target
+Run Earthfile specify target, just need set same name with Earthfile target
+```yaml
+  - name: deps
+```
