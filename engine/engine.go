@@ -74,7 +74,7 @@ func (e *Earthly) Run(ctx context.Context, specv runtime.Spec, stepv runtime.Ste
 	if step.Image == "" {
 		cmd = runEarthly(output, targetName)
 	} else {
-		cmd = runEarthly(output, "--target-ats-json", string(efByes), targetName)
+		cmd = runEarthly(output, "--target-ats-json", string(efByes), "--push", targetName)
 	}
 	var err error
 	done := make(chan error)
