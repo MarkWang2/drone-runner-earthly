@@ -1,0 +1,19 @@
+kind: pipeline
+name: default
+
+workspace:
+  path: /drone/src
+
+steps:
+  - name: build
+    image: golang
+    commands:
+      - --mount=type=cache,target=/go-cache go build
+  - name: test
+    image: golang
+    commands:
+      - go test -v -cover
+  - name: build-push
+    image: DOCKERFILE
+    commands:
+      - SAVE IMAGE --push go-demo:latest
